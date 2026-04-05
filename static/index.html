@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BET Deck Builder</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bet-blue: #003c6e;
+            --bet-light: #e8f0f8;
+            --bg: #f5f6f8;
+            --card: #ffffff;
+            --text: #1a1a1a;
+            --text-muted: #666;
+            --border: #dde1e6;
+            --user-bg: #003c6e;
+            --user-text: #ffffff;
+            --agent-bg: #ffffff;
+            --radius: 12px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bet-blue);
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .header-icon {
+            width: 36px; height: 36px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+        }
+        .header-title { font-size: 18px; font-weight: 600; }
+        .header-sub { font-size: 12px; opacity: 0.7; }
+        .header-actions { margin-left: auto; }
+        .btn-reset {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .btn-reset:hover { background: rgba(255,255,255,0.25); }
+
+        /* Chat area */
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            max-width: 720px;
+            width: 100%;
+            animation: fadeIn 0.2s ease;
+        }
+        .message.user { align-self: flex-end; }
+        .message.assistant { align-self: flex-start; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message-bubble {
+            padding: 14px 18px;
+            border-radius: var(--radius);
+            line-height: 1.6;
+            font-size: 14.5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .user .message-bubble {
+            background: var(--user-bg);
+            color: var(--user-text);
+            border-bottom-right-radius: 4px;
+        }
+        .assistant .message-bubble {
+            background: var(--agent-bg);
+            border: 1px solid var(--border);
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+
+        .message-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+        .user .message-label { text-align: right; }
+
+        /* Download banner */
+        .download-banner {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #e8f5e9;
+            border: 1px solid #a5d6a7;
+            padding: 10px 16px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        .download-banner a {
+            color: var(--bet-blue);
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .download-banner a:hover { text-decoration: underline; }
+
+        /* Loading dots */
+        .typing-indicator {
+            display: flex; gap: 5px; padding: 14px 18px;
+            background: var(--agent-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            border-bottom-left-radius: 4px;
+            width: fit-content;
+        }
+        .typing-dot {
+            width: 8px; height: 8px;
+            background: #999;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0.7); opacity: 0.4; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Input area */
+        .input-area {
+            background: var(--card);
+            border-top: 1px solid var(--border);
+            padding: 16px 24px;
+        }
+        .input-row {
+            max-width: 720px;
+            margin: 0 auto;
+            display: flex;
+            gap: 10px;
+        }
+        .input-row textarea {
+            flex: 1;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 14.5px;
+            font-family: inherit;
+            resize: none;
+            outline: none;
+            min-height: 48px;
+            max-height: 160px;
+            line-height: 1.5;
+        }
+        .input-row textarea:focus { border-color: var(--bet-blue); }
+        .btn-send {
+            background: var(--bet-blue);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 0 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .btn-send:hover { background: #002d54; }
+        .btn-send:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Welcome */
+        .welcome {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+        .welcome h2 {
+            font-size: 22px;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+        .welcome p { font-size: 14px; max-width: 480px; margin: 0 auto; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-icon">📊</div>
+    <div>
+        <div class="header-title">BET Deck Builder</div>
+        <div class="header-sub">KI-gestützte Präsentationserstellung</div>
+    </div>
+    <div class="header-actions">
+        <button class="btn-reset" onclick="resetChat()">Neuer Chat</button>
+    </div>
+</div>
+
+<div class="chat-container" id="chat">
+    <div class="welcome">
+        <h2>Willkommen beim BET Deck Builder</h2>
+        <p>Beschreiben Sie Ihr Thema, und ich erstelle eine professionelle BET-Präsentation für Sie. Zum Beispiel: "Erstelle eine Präsentation zur WACC-Regulierung, 8 Folien, für die GF"</p>
+    </div>
+</div>
+
+<div class="input-area">
+    <div class="input-row">
+        <textarea
+            id="input"
+            placeholder="Nachricht eingeben..."
+            rows="1"
+            onkeydown="handleKey(event)"
+            oninput="autoResize(this)"
+        ></textarea>
+        <button class="btn-send" id="sendBtn" onclick="send()">Senden</button>
+    </div>
+</div>
+
+<script>
+    const chatEl = document.getElementById('chat');
+    const inputEl = document.getElementById('input');
+    const sendBtn = document.getElementById('sendBtn');
+
+    let history = [];
+    let isLoading = false;
+
+    function autoResize(el) {
+        el.style.height = 'auto';
+        el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+    }
+
+    function handleKey(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            send();
+        }
+    }
+
+    function resetChat() {
+        history = [];
+        chatEl.innerHTML = `
+            <div class="welcome">
+                <h2>Willkommen beim BET Deck Builder</h2>
+                <p>Beschreiben Sie Ihr Thema, und ich erstelle eine professionelle BET-Präsentation für Sie.</p>
+            </div>`;
+        inputEl.focus();
+    }
+
+    function addMessage(role, text, downloadUrl) {
+        // Remove welcome on first message
+        const welcome = chatEl.querySelector('.welcome');
+        if (welcome) welcome.remove();
+
+        const div = document.createElement('div');
+        div.className = `message ${role}`;
+
+        const label = document.createElement('div');
+        label.className = 'message-label';
+        label.textContent = role === 'user' ? 'Sie' : 'BET Deck Builder';
+        div.appendChild(label);
+
+        const bubble = document.createElement('div');
+        bubble.className = 'message-bubble';
+
+        // Simple markdown-like rendering
+        let html = text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/📥.*?Download:.*?(https:\/\/\S+)/g, '');
+
+        bubble.innerHTML = html;
+        div.appendChild(bubble);
+
+        // Download banner
+        if (downloadUrl) {
+            const banner = document.createElement('div');
+            banner.className = 'download-banner';
+            banner.innerHTML = `📥 <a href="${downloadUrl}" target="_blank" rel="noopener">Präsentation herunterladen (.pptx)</a>`;
+            div.appendChild(banner);
+        }
+
+        chatEl.appendChild(div);
+        chatEl.scrollTop = chatEl.scrollHeight;
+    }
+
+    function showLoading() {
+        const div = document.createElement('div');
+        div.className = 'message assistant';
+        div.id = 'loading';
+
+        const label = document.createElement('div');
+        label.className = 'message-label';
+        label.textContent = 'BET Deck Builder';
+        div.appendChild(label);
+
+        const indicator = document.createElement('div');
+        indicator.className = 'typing-indicator';
+        indicator.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+        div.appendChild(indicator);
+
+        chatEl.appendChild(div);
+        chatEl.scrollTop = chatEl.scrollHeight;
+    }
+
+    function hideLoading() {
+        const el = document.getElementById('loading');
+        if (el) el.remove();
+    }
+
+    async function send() {
+        const text = inputEl.value.trim();
+        if (!text || isLoading) return;
+
+        isLoading = true;
+        sendBtn.disabled = true;
+        inputEl.value = '';
+        inputEl.style.height = 'auto';
+
+        addMessage('user', text);
+
+        showLoading();
+
+        try {
+            const resp = await fetch('/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: text, history }),
+            });
+
+            hideLoading();
+
+            if (!resp.ok) {
+                const err = await resp.text();
+                addMessage('assistant', `⚠️ Fehler: ${err}`);
+                return;
+            }
+
+            const data = await resp.json();
+
+            // Update history
+            history.push({ role: 'user', content: text });
+            history.push({ role: 'assistant', content: data.reply });
+
+            addMessage('assistant', data.reply, data.download_url);
+
+        } catch (err) {
+            hideLoading();
+            addMessage('assistant', `⚠️ Verbindungsfehler: ${err.message}`);
+        } finally {
+            isLoading = false;
+            sendBtn.disabled = false;
+            inputEl.focus();
+        }
+    }
+
+    inputEl.focus();
+</script>
+</body>
+</html>
