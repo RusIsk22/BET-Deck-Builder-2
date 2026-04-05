@@ -12,7 +12,6 @@ import os
 import re
 import json
 import uuid
-import time
 import tempfile
 import logging
 
@@ -196,25 +195,6 @@ async def upload_to_supabase(filepath: str, filename: str) -> str:
     return public_url
 
 
-# ── Log to Supabase ────────────────────────────────────────────────────
-async def log_to_supabase(data: dict):
-    """Log chat interaction to Supabase chat_logs table."""
-    try:
-        async with httpx.AsyncClient() as client:
-            await client.post(
-                f"{SUPABASE_URL}/rest/v1/chat_logs",
-                headers={
-                    "Authorization": f"Bearer {SUPABASE_KEY}",
-                    "apikey": SUPABASE_KEY,
-                    "Content-Type": "application/json",
-                    "Prefer": "return=minimal",
-                },
-                json=data,
-            )
-    except Exception as e:
-        log.warning(f"Logging failed (non-critical): {e}")
-
-
 # ── Build PPTX ─────────────────────────────────────────────────────────
 async def build_and_upload(outline: dict) -> tuple[str, str]:
     """Build .pptx from outline and upload to Supabase. Returns (url, filename)."""
@@ -278,9 +258,8 @@ async def chat(req: ChatRequest):
         messages.append({"role": msg["role"], "content": msg["content"]})
     messages.append({"role": "user", "content": req.message})
 
-    # Call Claude API with timing
+    # Call Claude API
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-    start_time = time.time()
 
     try:
         response = client.messages.create(
@@ -293,19 +272,16 @@ async def chat(req: ChatRequest):
         log.error(f"Claude API error: {e}")
         raise HTTPException(502, f"Claude API error: {str(e)}")
 
-    latency_ms = int((time.time() - start_time) * 1000)
     reply_text = response.content[0].text
 
     # Check if the response contains an outline
     outline = extract_outline(reply_text)
     download_url = None
-    deck_built = False
 
     if outline:
         try:
             url, filename = await build_and_upload(outline)
             download_url = url
-            deck_built = True
             # Clean the reply and append download info
             reply_text = clean_reply(reply_text)
             if not reply_text:
@@ -316,19 +292,6 @@ async def chat(req: ChatRequest):
             log.error(f"Build/upload failed: {e}")
             reply_text = clean_reply(reply_text)
             reply_text += f"\n\n⚠️ Fehler beim Erstellen der Präsentation: {str(e)}"
-
-    # Log to Supabase (non-blocking, errors won't affect response)
-    await log_to_supabase({
-        "user_message": req.message,
-        "assistant_reply": reply_text[:5000],  # truncate long replies
-        "model": response.model,
-        "input_tokens": response.usage.input_tokens,
-        "output_tokens": response.usage.output_tokens,
-        "latency_ms": latency_ms,
-        "deck_built": deck_built,
-        "download_url": download_url,
-        "conversation_length": len(req.history) + 1,
-    })
 
     return ChatResponse(reply=reply_text, download_url=download_url)
 
